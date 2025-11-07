@@ -1,8 +1,11 @@
 import type { NextConfig } from "next";
-import { env } from "process";
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: [env.REPLIT_DOMAINS.split(",")[0]],
+  reactStrictMode: true,
+  swcMinify: true,
+  images: {
+    domains: ["localhost", "your-domain.com"],
+  },
 };
 
-module.exports = nextConfig;
+export default nextConfig;
