@@ -1,147 +1,147 @@
-// pages/video.tsx
-import React, { useState } from "react";
+"use client";
 
-export default function VideoStudio() {
-  const [prompt, setPrompt] = useState("");
-  const [voice, setVoice] = useState("female");
-  const [style, setStyle] = useState("realistic");
-  const [duration, setDuration] = useState("30");
+import { useState } from "react";
+
+export default function VideoGenerator() {
+  const [script, setScript] = useState("");
+  const [language, setLanguage] = useState("English");
+  const [style, setStyle] = useState("news_anchor");
+  const [face, setFace] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState("");
 
-  async function generateVideo() {
-    if (!prompt.trim()) return alert("Please describe your scene first.");
-    setLoading(true);
-    setVideoUrl(null);
+  // Convert uploaded image to Base64
+  const handleFaceUpload = (e: any) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    try {
-      const res = await fetch("/api/generate-video", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, style, voice, duration }),
-      });
-      const j = await res.json();
-      setVideoUrl(j.videoUrl || "/mock/sample1.mp4");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to generate (mock).");
-    } finally {
-      setLoading(false);
+    const reader = new FileReader();
+    reader.onloadend = () => setFace(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  const handleGenerate = async () => {
+    if (!script.trim()) {
+      alert("Please type your script.");
+      return;
     }
-  }
+
+    setLoading(true);
+    setVideoUrl("");
+
+    const res = await fetch("/api/video/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        script,
+        language,
+        style,
+        faceImageBase64: face,
+      }),
+    });
+
+    const data = await res.json();
+    setLoading(false);
+
+    if (!res.ok) {
+      alert("Error: " + data.error);
+      return;
+    }
+
+    setVideoUrl(data.videoUrl);
+  };
 
   return (
-    <div
-      style={{
-        maxWidth: 1000,
-        margin: "0 auto",
-        background: "#f9fafb",
-        borderRadius: 16,
-        padding: 24,
-        boxShadow: "0 0 12px rgba(0,0,0,0.05)",
-      }}
-    >
-      <h1 style={{ textAlign: "center", marginBottom: 20 }}>
-        🎬 Omniverse AI Studio
+    <div className="min-h-screen bg-[#0B0B0F] text-white p-6 flex flex-col items-center">
+      <h1 className="text-4xl font-extrabold mb-8 text-center">
+        🎬 AI Video Generator
       </h1>
-      <p style={{ textAlign: "center", color: "#666" }}>
-        Turn your text into realistic, cartoon, or avatar videos with voice
-        narration.
-      </p>
 
-      <div style={{ marginTop: 20 }}>
-        <label style={{ fontWeight: 600 }}>Describe your scene:</label>
+      {/* CARD */}
+      <div className="w-full max-w-3xl bg-white/5 border border-white/10 p-6 rounded-2xl shadow-xl backdrop-blur">
+        {/* Script */}
+        <label className="block mb-2 font-semibold text-lg">Video Script</label>
         <textarea
-          rows={5}
-          style={{ width: "100%", marginTop: 6, padding: 10, borderRadius: 8 }}
-          placeholder="Example: A cheerful child teaching alphabets in a colorful classroom..."
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-        />
-      </div>
+          placeholder="Describe the video you want... (script will be spoken exactly)"
+          className="w-full p-4 rounded-lg text-black h-36"
+          value={script}
+          onChange={(e) => setScript(e.target.value)}
+        ></textarea>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-          gap: 12,
-          marginTop: 20,
-        }}
-      >
-        <div>
-          <label>🎨 Style</label>
+        {/* Language */}
+        <div className="mt-4">
+          <label className="font-semibold block mb-1">Language</label>
           <select
+            className="bg-black border border-gray-600 px-4 py-2 rounded-lg"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+          >
+            <option>English</option>
+            <option>French</option>
+            <option>Spanish</option>
+            <option>Arabic</option>
+            <option>Chinese</option>
+            <option>Twi</option>
+          </select>
+        </div>
+
+        {/* Style */}
+        <div className="mt-4">
+          <label className="font-semibold block mb-1">Video Style</label>
+          <select
+            className="bg-black border border-gray-600 px-4 py-2 rounded-lg"
             value={style}
             onChange={(e) => setStyle(e.target.value)}
-            style={{ width: "100%", padding: 8 }}
           >
-            <option value="realistic">Realistic</option>
-            <option value="cartoon">Cartoon</option>
-            <option value="avatar">Avatar</option>
-            <option value="cinematic">Cinematic</option>
+            <option value="news_anchor">News Anchor</option>
+            <option value="storyteller">Storyteller</option>
+            <option value="teacher">Teacher</option>
+            <option value="influencer">Influencer</option>
+            <option value="motivational">Motivational Speaker</option>
           </select>
         </div>
 
-        <div>
-          <label>🗣️ Voice Type</label>
-          <select
-            value={voice}
-            onChange={(e) => setVoice(e.target.value)}
-            style={{ width: "100%", padding: 8 }}
-          >
-            <option value="female">Female</option>
-            <option value="male">Male</option>
-            <option value="child">Child</option>
-            <option value="robotic">Robotic</option>
-          </select>
+        {/* Face Upload */}
+        <div className="mt-4">
+          <label className="font-semibold block mb-2">
+            Upload Face (optional):
+          </label>
+          <input type="file" accept="image/*" onChange={handleFaceUpload} />
+
+          {face && (
+            <img
+              src={face}
+              alt="Preview"
+              className="mt-3 w-32 h-32 rounded-lg object-cover border border-white/20"
+            />
+          )}
         </div>
 
-        <div>
-          <label>⏱ Duration (sec)</label>
-          <select
-            value={duration}
-            onChange={(e) => setDuration(e.target.value)}
-            style={{ width: "100%", padding: 8 }}
-          >
-            <option value="15">15s</option>
-            <option value="30">30s</option>
-            <option value="60">1 min</option>
-            <option value="120">2 mins</option>
-          </select>
-        </div>
-      </div>
-
-      <div style={{ textAlign: "center", marginTop: 30 }}>
+        {/* Generate Button */}
         <button
-          onClick={generateVideo}
+          onClick={handleGenerate}
           disabled={loading}
-          style={{
-            background: "#2563eb",
-            color: "#fff",
-            border: "none",
-            padding: "10px 28px",
-            borderRadius: 8,
-            cursor: "pointer",
-            fontSize: 16,
-          }}
+          className="w-full mt-6 bg-purple-600 hover:bg-purple-700 p-3 rounded-lg font-bold text-lg shadow-lg transition"
         >
-          {loading ? "Generating Video..." : "Generate Mock Video"}
+          {loading ? "Generating Video..." : "Generate Video"}
         </button>
       </div>
 
+      {/* Video Preview */}
       {videoUrl && (
-        <div style={{ marginTop: 30, textAlign: "center" }}>
-          <h3>Generated Video Preview</h3>
+        <div className="mt-10 w-full max-w-3xl">
           <video
             src={videoUrl}
             controls
-            style={{ width: "100%", borderRadius: 12, marginTop: 10 }}
+            className="rounded-xl shadow-xl w-full"
           />
-          <div style={{ marginTop: 10 }}>
-            <a href={videoUrl} download style={{ color: "#2563eb" }}>
-              ⬇ Download Video
-            </a>
-          </div>
+          <a
+            href={videoUrl}
+            download="omniverse-video.mp4"
+            className="mt-4 block bg-blue-600 hover:bg-blue-700 text-center p-3 rounded-lg font-bold"
+          >
+            Download Video
+          </a>
         </div>
       )}
     </div>
