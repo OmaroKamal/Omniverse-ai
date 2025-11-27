@@ -1,14 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 export default function VideoGenerator() {
   const [script, setScript] = useState("");
+  const [scene, setScene] = useState("");
   const [language, setLanguage] = useState("English");
   const [style, setStyle] = useState("news_anchor");
   const [face, setFace] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [videoUrl, setVideoUrl] = useState("");
+  const [error, setError] = useState("");
 
   // Convert uploaded image to Base64
   const handleFaceUpload = (e: any) => {
@@ -21,90 +24,126 @@ export default function VideoGenerator() {
   };
 
   const handleGenerate = async () => {
+    setError("");
     if (!script.trim()) {
-      alert("Please type your script.");
+      setError("Please type a script for the video.");
+      return;
+    }
+
+    if (!scene.trim()) {
+      setError("Please describe the scene/environment.");
       return;
     }
 
     setLoading(true);
     setVideoUrl("");
 
-    const res = await fetch("/api/video/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        script,
-        language,
-        style,
-        faceImageBase64: face,
-      }),
-    });
+    try {
+      const res = await fetch("/api/video/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          script,
+          scene,
+          language,
+          style,
+          faceImageBase64: face,
+        }),
+      });
 
-    const data = await res.json();
-    setLoading(false);
+      const data = await res.json();
+      setLoading(false);
 
-    if (!res.ok) {
-      alert("Error: " + data.error);
-      return;
+      if (!res.ok) {
+        setError(data.error || "Video generation failed.");
+        return;
+      }
+
+      setVideoUrl(data.videoUrl);
+    } catch (err) {
+      setLoading(false);
+      setError("Network error. Please try again.");
     }
-
-    setVideoUrl(data.videoUrl);
   };
 
   return (
     <div className="min-h-screen bg-[#0B0B0F] text-white p-6 flex flex-col items-center">
-      <h1 className="text-4xl font-extrabold mb-8 text-center">
-        🎬 AI Video Generator
-      </h1>
+      {/* Top Bar */}
+      <div className="w-full max-w-5xl flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-extrabold">🎬 AI Video Generator</h1>
+        <Link
+          href="/"
+          className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-semibold"
+        >
+          ← Back to Home
+        </Link>
+      </div>
 
-      {/* CARD */}
-      <div className="w-full max-w-3xl bg-white/5 border border-white/10 p-6 rounded-2xl shadow-xl backdrop-blur">
-        {/* Script */}
-        <label className="block mb-2 font-semibold text-lg">Video Script</label>
+      {/* MAIN CARD */}
+      <div className="w-full max-w-4xl bg-white/5 border border-white/10 p-6 rounded-2xl shadow-xl backdrop-blur">
+        {/* SCRIPT */}
+        <label className="block mb-2 font-semibold text-lg">
+          Video Script (What the character will say)
+        </label>
         <textarea
-          placeholder="Describe the video you want... (script will be spoken exactly)"
-          className="w-full p-4 rounded-lg text-black h-36"
+          placeholder="Type the exact words the character will speak..."
+          className="w-full p-4 rounded-lg text-black h-32 mb-4"
           value={script}
           onChange={(e) => setScript(e.target.value)}
-        ></textarea>
+        />
 
-        {/* Language */}
-        <div className="mt-4">
-          <label className="font-semibold block mb-1">Language</label>
-          <select
-            className="bg-black border border-gray-600 px-4 py-2 rounded-lg"
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-          >
-            <option>English</option>
-            <option>French</option>
-            <option>Spanish</option>
-            <option>Arabic</option>
-            <option>Chinese</option>
-            <option>Twi</option>
-          </select>
+        {/* SCENE */}
+        <label className="block mb-2 font-semibold text-lg">
+          Scene / Environment Description (Full-body & background)
+        </label>
+        <textarea
+          placeholder="Example: A man standing in front of a restaurant, holding food and speaking to customers..."
+          className="w-full p-4 rounded-lg text-black h-28 mb-4"
+          value={scene}
+          onChange={(e) => setScene(e.target.value)}
+        />
+
+        {/* CONTROLS GRID */}
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* LANGUAGE */}
+          <div>
+            <label className="font-semibold block mb-1">Language</label>
+            <select
+              className="w-full bg-black border border-gray-600 px-4 py-2 rounded-lg"
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+            >
+              <option>English</option>
+              <option>French</option>
+              <option>Spanish</option>
+              <option>Arabic</option>
+              <option>Chinese</option>
+              <option>Twi</option>
+            </select>
+          </div>
+
+          {/* STYLE */}
+          <div>
+            <label className="font-semibold block mb-1">Video Style</label>
+            <select
+              className="w-full bg-black border border-gray-600 px-4 py-2 rounded-lg"
+              value={style}
+              onChange={(e) => setStyle(e.target.value)}
+            >
+              <option value="news_anchor">News Anchor</option>
+              <option value="storyteller">Storyteller</option>
+              <option value="teacher">Teacher</option>
+              <option value="influencer">Influencer</option>
+              <option value="motivational">Motivational Speaker</option>
+              <option value="advert">Product Advertisement</option>
+            </select>
+          </div>
         </div>
 
-        {/* Style */}
-        <div className="mt-4">
-          <label className="font-semibold block mb-1">Video Style</label>
-          <select
-            className="bg-black border border-gray-600 px-4 py-2 rounded-lg"
-            value={style}
-            onChange={(e) => setStyle(e.target.value)}
-          >
-            <option value="news_anchor">News Anchor</option>
-            <option value="storyteller">Storyteller</option>
-            <option value="teacher">Teacher</option>
-            <option value="influencer">Influencer</option>
-            <option value="motivational">Motivational Speaker</option>
-          </select>
-        </div>
-
-        {/* Face Upload */}
-        <div className="mt-4">
+        {/* FACE UPLOAD */}
+        <div className="mt-6">
           <label className="font-semibold block mb-2">
-            Upload Face (optional):
+            Upload Character Face (Optional)
           </label>
           <input type="file" accept="image/*" onChange={handleFaceUpload} />
 
@@ -117,19 +156,24 @@ export default function VideoGenerator() {
           )}
         </div>
 
-        {/* Generate Button */}
+        {/* ERROR */}
+        {error && (
+          <div className="mt-4 text-red-400 text-sm font-semibold">{error}</div>
+        )}
+
+        {/* GENERATE BUTTON */}
         <button
           onClick={handleGenerate}
           disabled={loading}
-          className="w-full mt-6 bg-purple-600 hover:bg-purple-700 p-3 rounded-lg font-bold text-lg shadow-lg transition"
+          className="w-full mt-6 bg-purple-600 hover:bg-purple-700 p-3 rounded-lg font-bold text-lg shadow-lg transition disabled:bg-purple-900"
         >
-          {loading ? "Generating Video..." : "Generate Video"}
+          {loading ? "Generating Video..." : "Generate Full-Scene Video"}
         </button>
       </div>
 
-      {/* Video Preview */}
+      {/* VIDEO PREVIEW */}
       {videoUrl && (
-        <div className="mt-10 w-full max-w-3xl">
+        <div className="mt-10 w-full max-w-4xl">
           <video
             src={videoUrl}
             controls
