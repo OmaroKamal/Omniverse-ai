@@ -14,32 +14,59 @@ export default async function handler(
       return res.status(405).json({ error: "Method not allowed" });
     }
 
-    const { script } = req.body;
+    const { script, scene, language, style, faceImageBase64 } = req.body;
 
-    if (!script) {
-      return res.status(400).json({ error: "Missing script" });
+    if (!script || !scene) {
+      return res
+        .status(400)
+        .json({ error: "Missing script or scene description" });
     }
 
-    const response = await client.videos.generate({
-      model: "sora-1",
-      prompt: `Create a realistic talking-head video speaking: ${script}`,
+    // ✅ Step 1: Use OpenAI to create a PROFESSIONAL VIDEO PROMPT
+    const aiPrompt = `
+You are a professional film director AI.
+
+Video Style: ${style}
+Language: ${language}
+
+Scene:
+${scene}
+
+Dialogue:
+${script}
+
+Create a realistic, full-body cinematic video description suitable for AI video generation.
+Include:
+- Camera movement
+- Lighting
+- Character expressions
+- Environment details
+- Natural human actions
+`;
+
+    const completion = await client.responses.create({
+      model: "gpt-4.1-mini",
+      input: aiPrompt,
     });
 
-    const videoUrl =
-      response?.output?.[0]?.url ||
-      response?.video_url ||
-      response?.url ||
-      null;
+    const refinedPrompt =
+      completion.output_text || "Professional cinematic video scene";
 
-    if (!videoUrl) {
-      return res.status(500).json({
-        error: "Video URL missing — check Sora model availability",
-      });
-    }
+    // ✅ Step 2: TEMPORARY VIDEO ENGINE MOCK (Until Sora/Runway is connected)
+    const fakeVideoUrl = "https://www.w3schools.com/html/mov_bbb.mp4"; // placeholder demo video
 
-    return res.status(200).json({ videoUrl });
+    // ✅ Step 3: Return clean response
+    return res.status(200).json({
+      message: "Video job created successfully",
+      refinedPrompt,
+      videoUrl: fakeVideoUrl,
+      note: "This is a placeholder video. Real AI video engine will replace this.",
+    });
   } catch (err: any) {
-    console.error("API ERROR:", err);
-    return res.status(500).json({ error: err.message });
+    console.error("VIDEO API ERROR:", err);
+    return res.status(500).json({
+      error: "Video generation failed",
+      details: err.message,
+    });
   }
 }
